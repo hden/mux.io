@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "description": "Bouncing your webhook data to cube / nsq",
   "main": "index.js",
-  "engines" : {
-    "node" : ">=0.11.11"
+  "engines": {
+    "node": ">=0.11.11"
   },
   "scripts": {
     "test": "mocha",
@@ -32,7 +32,8 @@
     "commander": "~2.2.0",
     "co-body": "0.0.1",
     "co": "~3.0.5",
-    "moment": "~2.5.1"
+    "moment": "~2.5.1",
+    "superagent": "~0.17.0"
   },
   "devDependencies": {
     "chai": "~1.9.1",
