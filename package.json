@@ -1,0 +1,42 @@
+{
+  "name": "trampoline",
+  "version": "0.0.0",
+  "description": "Bouncing your webhook data to cube / nsq",
+  "main": "index.js",
+  "engines" : {
+    "node" : ">=0.11.11"
+  },
+  "scripts": {
+    "test": "mocha",
+    "start": "node --harmony-generators ./lib/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hden/trampoline.git"
+  },
+  "keywords": [
+    "nsq",
+    "cube"
+  ],
+  "author": "Hao-kang Den <haokang.den@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hden/trampoline/issues"
+  },
+  "homepage": "https://github.com/hden/trampoline",
+  "dependencies": {
+    "underscore": "~1.6.0",
+    "raven": "~0.6.3",
+    "koa": "~0.5.3",
+    "debug": "~0.8.0",
+    "commander": "~2.2.0",
+    "co-body": "0.0.1",
+    "co": "~3.0.5",
+    "moment": "~2.5.1"
+  },
+  "devDependencies": {
+    "chai": "~1.9.1",
+    "mocha": "~1.18.2",
+    "coffee-script": "git://github.com/xixixao/coffee-script"
+  }
+}
