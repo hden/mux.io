@@ -22,6 +22,9 @@ if program.error?
     _.bindAll client, 'captureError', 'captureQuery', 'captureMessage'
     app.on 'error', client.captureError
 
+app.on 'error', (error) ->
+    console.error error.stack
+
 # body-parser
 app.use (next) -->
     try
