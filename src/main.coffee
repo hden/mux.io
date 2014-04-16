@@ -40,7 +40,12 @@ existsSync = _.memoize fs.existsSync
 app.use (next) -->
     modulePath = "#{__dirname}/modules#{@request.path}.js"
     return @throw 404 unless existsSync modulePath
-    require(modulePath)(@request.body, @request.query)
+
+    try
+        require(modulePath)(@request.body, @request.query)
+    catch e
+        debug 'error while processing message: %s', e.message
+
     @body = 'OK'
     yield next
 
