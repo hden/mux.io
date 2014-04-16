@@ -16,6 +16,7 @@ writer
     debug 'writer, nsq response error %s', error.message
 
 module.exports = co (data, query) -->
+    debug 'handling request: %j', data
     return unless data?
     mh = data['message-headers']
     data['message-headers'] = JSON.parse(mh) if _.isString mh

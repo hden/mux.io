@@ -42,7 +42,7 @@ app.use (next) -->
     return @throw 404 unless existsSync modulePath
 
     try
-        require(modulePath)(@request.body, @request.query)
+        require(modulePath)(@request.body, @request.query) if request.body?
     catch e
         debug 'error while processing message: %s', e.message
 
