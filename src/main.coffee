@@ -31,6 +31,7 @@ app.use (next) -->
         @request.body = yield parse @
     catch e
         debug 'error parsing body %s', e.message
+        debug 'request: %j', @request
         throw e if e.status isnt 415
     yield next
 
