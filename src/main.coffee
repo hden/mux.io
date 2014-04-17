@@ -1,14 +1,15 @@
 'use strict'
 
-fs      = require 'fs'
+fs        = require 'fs'
 
-debug   = require('debug')('trampoline:main')
-app     = require('koa')()
+debug     = require('debug')('trampoline:main')
+app       = require('koa')()
 
-_       = require 'underscore'
-program = require 'commander'
-parse   = require 'co-body'
-raven   = require 'raven'
+multipart = require 'co-multipart'
+_         = require 'underscore'
+program   = require 'commander'
+parse     = require 'co-body'
+raven     = require 'raven'
 
 # option parsing
 program
@@ -27,13 +28,32 @@ app.on 'error', (error) ->
 
 # body-parser
 app.use (next) -->
-    try
-        @request.body = yield parse @
-    catch e
-        debug 'error parsing body %s', e.message
-        debug 'request: %j', @request
-        throw e if e.status isnt 415
-    yield next
+
+    if @is 'multipart/form-data'
+        try
+            parts = yield from multipart @
+        catch e
+            debug 'error parsing multipart body %s', e.message
+            return debug 'request: %j', @request
+
+        console.log 'got a multipart: %j', parts.files
+
+        try
+            yield next
+        catch e
+            do parts.dispose
+            throw e
+
+        do parts.dispose
+
+    else
+        try
+            @request.body = yield parse @
+        catch e
+            debug 'error parsing body %s', e.message
+            return debug 'request: %j', @request
+
+        yield next
 
 # router
 existsSync = _.memoize fs.existsSync

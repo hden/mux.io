@@ -34,7 +34,8 @@
     "co": "~3.0.5",
     "moment": "~2.5.1",
     "superagent": "~0.17.0",
-    "nsq.js": "~0.8.1"
+    "nsq.js": "~0.8.1",
+    "co-multipart": "0.0.2"
   },
   "devDependencies": {
     "chai": "~1.9.1",
