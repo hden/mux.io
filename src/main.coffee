@@ -1,73 +1,88 @@
 'use strict'
 
-fs        = require 'fs'
+debug  = require('debug')('trampoline:main')
+_      = require 'underscore'
+parse  = require 'co-body'
+app    = require('koa')()
+nsq    = require 'nsq.js'
 
-debug     = require('debug')('trampoline:main')
-app       = require('koa')()
+noop   = ->
+patch  = (Server) ->
+  # socket.io wildcard patch
+  Server.Manager::onClientMessage = (id, packet) ->
+    return unless @namespaces[packet.endpoint]
+    @namespaces[packet.endpoint].handlePacket id, packet
+    p = _.clone packet
+    p.name = '*'
+    p.args = _.pick packet, 'id', 'name', 'args'
+    @namespaces[packet.endpoint].handlePacket id, p
+  Server
 
-multipart = require 'co-multipart'
-_         = require 'underscore'
-program   = require 'commander'
-parse     = require 'co-body'
-raven     = require 'raven'
+ack = (socket, ackId, args) ->
+  args = [args] unless _.isArray args
+  socket.packet {
+      type: 'ack'
+      args: args
+      ackId: ackId
+  }
 
-# option parsing
-program
-.version(require("#{__dirname}/../package.json").version or '0.0.1')
-.option('-e --error [sentry]', 'error logging via sentry')
-.option('-p --port <port>', 'a port to listen to', parseInt)
-.parse(process.argv)
+module.exports = (options = {}, configure = noop) ->
+  _.defaults options, {
+    hostname: require('os').hostname()
+    port: 8000
+  }
 
-if program.error?
-    client = new raven.Client program.error
-    _.bindAll client, 'captureError', 'captureQuery', 'captureMessage'
-    app.on 'error', client.captureError
+  socketPool = {}
 
-app.on 'error', (error) ->
-    console.error error.stack
-
-# body-parser
-app.use (next) -->
-
-    if @is 'multipart/form-data'
-        try
-            parts = yield from multipart @
-        catch e
-            debug 'error parsing multipart body %s', e.message
-            return debug 'request: %j', @request
-
-        console.log 'got a multipart: %j', parts.files
-
-        try
-            yield next
-        catch e
-            do parts.dispose
-            throw e
-
-        do parts.dispose
-
-    else
-        try
-            @request.body = yield parse @
-        catch e
-            debug 'error parsing body %s', e.message
-            return debug 'request: %j', @request
-
-        yield next
-
-# router
-existsSync = _.memoize fs.existsSync
-
-app.use (next) -->
-    modulePath = "#{__dirname}/modules#{@request.path}.js"
-    return @throw 404 unless existsSync modulePath
-
-    try
-        require(modulePath)(@request.body, @request.query) if @request.body?
-    catch e
-        debug 'error while processing message: %s', e.message
-
-    @body = 'OK'
+  # body parser
+  app.use (next) -->
+    @request.body = yield parse(@)
     yield next
 
-app.listen program.port or 8000
+  app.use(require('koa-trie-router')(app))
+
+  # general message handler
+  app.post '/:socketId', (next) -->
+    return unless (socketPool[@params.socketId] is true) and (@query.topic?)
+    @body  = 'ok'
+    return unless @request.body?
+    io.sockets.socket(@params.socketId).emit(@query.topic, @request.body)
+
+  # ack message handler
+  app.post '/:socketId/:messageId', (next) -->
+    return unless socketPool[@params.socketId] is true
+    @body  = 'ok'
+
+    return unless @request.body?
+    # emitting ack packet
+    ack(io.sockets.socket(@params.socketId), @params.messageId, @request.body)
+
+    yield next
+
+  server   = require('http').Server(app.callback())
+  io       = patch(require('socket.io')).listen(server)
+  # writer   = nsq.writer ':4150'
+
+  io.configure ->
+    configure io
+
+  io.sockets.on 'connection', (socket) ->
+    socketPool[socket.id] = true
+
+    socket.on 'disconnect', ->
+      socketPool[socket.id] = undefined
+
+    socket.on '*', ({name, args, id}, done) ->
+      debug 'on message'
+
+      body =
+        id: id
+        args: args
+        replyTo: "http://#{options.hostname}:#{options.port}/#{socket.id}/#{id}"
+
+      # writer.publish name, body
+
+  # engine start
+  server.listen(options.port)
+
+do module.exports

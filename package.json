@@ -26,20 +26,20 @@
   "homepage": "https://github.com/hden/trampoline",
   "dependencies": {
     "underscore": "~1.6.0",
-    "raven": "~0.6.3",
-    "koa": "~0.5.3",
     "debug": "~0.8.0",
     "commander": "~2.2.0",
-    "co-body": "0.0.1",
     "co": "~3.0.5",
     "moment": "~2.5.1",
-    "superagent": "~0.17.0",
     "nsq.js": "~0.8.1",
-    "co-multipart": "0.0.2"
+    "socket.io": "~0.9.16",
+    "koa": "~0.5.5",
+    "co-body": "0.0.1",
+    "koa-trie-router": "~1.0.5"
   },
   "devDependencies": {
     "chai": "~1.9.1",
     "mocha": "~1.18.2",
-    "coffee-script": "git://github.com/xixixao/coffee-script"
+    "coffee-script": "git://github.com/xixixao/coffee-script",
+    "socket.io-client": "~0.9.16"
   }
 }
