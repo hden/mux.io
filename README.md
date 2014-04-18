@@ -1,7 +1,9 @@
 trampoline
 ==========
 
-Bouncing your webhook data to cube / nsq
+Bouncing your socket.io data to nsq. With RESTful reply-to endpoints.
+
+![Design](https://github.com/hden/trampoline/raw/master/doc/diagram.png)
 
 # Requirement
 
