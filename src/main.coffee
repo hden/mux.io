@@ -76,9 +76,12 @@ module.exports = (options = {}, configure = noop) ->
       debug 'on message'
 
       body =
+        name: name
         id: id
         args: args
         replyTo: "http://#{options.hostname}:#{options.port}/#{socket.id}/#{id}"
+
+      console.log body
 
       # writer.publish name, body
 
