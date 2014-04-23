@@ -3,21 +3,25 @@ trampoline
 
 Bouncing your socket.io data to nsq. With RESTful reply-to endpoints.
 
+[![Build Status](https://travis-ci.org/hden/trampoline.svg?branch=master)](https://travis-ci.org/hden/trampoline)
+
+## Design
+
 ![Design](https://github.com/hden/trampoline/raw/master/doc/diagram.png)
 
-# Requirement
+## Requirement
 
 * node.js `~v0.11.11`
 
-# Installation
+## Installation
 
     npm install
 
-# Usage
+## Usage
 
     npm start
 
-# Develpoment
+## Develpoment
 
     ./node_modules/.bin/coffee -w -c -o lib/ src/
-    DEBUG=* npm start
+    DEBUG=* npm test
