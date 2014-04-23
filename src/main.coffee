@@ -61,7 +61,7 @@ module.exports = (options = {}, configure = noop) ->
 
   server   = require('http').Server(app.callback())
   io       = patch(require('socket.io')).listen(server)
-  # writer   = nsq.writer ':4150'
+  writer   = nsq.writer(options.nsq) if options.nsq?
 
   io.configure ->
     configure io
@@ -81,11 +81,9 @@ module.exports = (options = {}, configure = noop) ->
         args: args
         replyTo: "http://#{options.hostname}:#{options.port}/#{socket.id}/#{id}"
 
-      console.log body
+      debug 'bouncing message: %j', body
 
-      # writer.publish name, body
+      writer.publish(name, body) if options.nsq?
 
   # engine start
   server.listen(options.port)
-
-do module.exports

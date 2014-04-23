@@ -1,19 +1,75 @@
 'use strict'
 
-debug = require('debug')('trampoline:client')
-io    = require 'socket.io-client'
+debug    = require('debug')('trampoline:test')
+io       = require 'socket.io-client'
+request  = require 'superagent'
+nsq      = require 'nsq.js'
+{assert} = require 'chai'
 
-socket = io.connect 'http://localhost:8000/'#, {secure : true}
+HOSTNAME = 'localhost'
+PORT     = 8080
 
+describe 'trampoline', ->
+  socket = undefined
+  reader = undefined
 
-socket.on 'error', (error) ->
-  console.log 'error %s', error.message
+  before (done) ->
+    require("#{__dirname}/../lib/main")({hostname: HOSTNAME, port: PORT, nsq: ':4150'})
 
-socket.on 'connect_failed', ->
-  console.log 'connect_failed'
+    socket = io.connect "http://#{HOSTNAME}:#{PORT}/"
 
-socket.on 'message', (message) ->
-  console.log 'got a message %j', message
+    socket.on 'error', (error) ->
+      console.error error.stack
 
-socket.emit 'signal', ['topic', {bar: 'baz'}], (data) ->
-  console.log 'got a response %j', data
+    socket.once 'connect_error', done
+    socket.once 'connect', done
+
+  beforeEach (done) ->
+    reader = nsq.reader {
+      nsqd: [':4150']
+      topic: 'foo'
+      channel: 'test'
+    }
+
+    reader.once 'ready', done
+    reader.on 'error', (error) ->
+      console.error error.stack
+
+  afterEach (done) ->
+    reader.close done
+
+  it 'should bounce socket.io message to nsq', (done) ->
+    payload =
+      bar: 'baz'
+
+    reader.once 'message', (message) ->
+      message.finish()
+      msg = message.json()
+
+      assert.equal msg.name, 'foo'
+      assert.deepEqual msg.args, [payload]
+      assert.isString msg.replyTo
+      do done
+
+    socket.emit 'foo', payload, done
+
+  it 'should bounce back ack message', (done) ->
+    @timeout 10 * 1000
+    payload =
+      baz: 'nyan'
+
+    reader.once 'message', (message) ->
+      message.finish()
+      {replyTo} = message.json()
+
+      request
+      .post(replyTo)
+      .send(payload)
+      .end (res) ->
+        done 'faild to post message' unless res.ok
+
+    socket.emit 'foo', (ack) ->
+      assert.deepEqual ack, payload
+      do done
+
+  it 'should be able to send specific message'
