@@ -29,7 +29,8 @@ ack = (socket, ackId, args) ->
 module.exports = (options = {}, configure = noop) ->
   _.defaults options, {
     hostname: require('os').hostname()
-    port: 8000
+    httpport: 8000
+    wsport: 80
   }
 
   socketPool = {}
@@ -60,7 +61,7 @@ module.exports = (options = {}, configure = noop) ->
     yield next
 
   server   = require('http').Server(app.callback())
-  io       = patch(require('socket.io')).listen(server)
+  io       = patch(require('socket.io')).listen(options.wsport)
   writer   = nsq.writer(options.nsq) if options.nsq?
 
   io.configure ->
@@ -79,11 +80,11 @@ module.exports = (options = {}, configure = noop) ->
         name: name
         id: id
         args: args
-        replyTo: "http://#{options.hostname}:#{options.port}/#{socket.id}/#{id}"
+        replyTo: "http://#{options.hostname}:#{options.httpport}/#{socket.id}/#{id}"
 
       debug 'bouncing message: %j', body
 
       writer.publish(name, body) if options.nsq?
 
   # engine start
-  server.listen(options.port)
+  server.listen(options.httpport)

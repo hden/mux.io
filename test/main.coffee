@@ -7,16 +7,17 @@ nsq      = require 'nsq.js'
 {assert} = require 'chai'
 
 HOSTNAME = 'localhost'
-PORT     = 8080
+HTTPPORT = 8080
+WSPORT   = 8000
 
 describe 'trampoline', ->
   socket = undefined
   reader = undefined
 
   before (done) ->
-    require("#{__dirname}/../lib/main")({hostname: HOSTNAME, port: PORT, nsq: ':4150'})
+    require("#{__dirname}/../lib/main")({hostname: HOSTNAME, wsport:WSPORT, httpport: HTTPPORT, nsq: ':4150'})
 
-    socket = io.connect "http://#{HOSTNAME}:#{PORT}/"
+    socket = io.connect "http://#{HOSTNAME}:#{WSPORT}/"
 
     socket.on 'error', (error) ->
       console.error error.stack
