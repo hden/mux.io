@@ -3,7 +3,7 @@ trampoline
 
 Bouncing your socket.io data to nsq. With RESTful reply-to endpoints.
 
-[![Build Status](https://travis-ci.org/hden/trampoline.svg?branch=master)](https://travis-ci.org/hden/trampoline)
+[![Build Status](https://travis-ci.org/hden/mux.io.svg?branch=master)](https://travis-ci.org/hden/mux.io)
 
 ## Design
 
