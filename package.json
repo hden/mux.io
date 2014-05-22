@@ -1,7 +1,7 @@
 {
-  "name": "trampoline",
+  "name": "mux.io",
   "version": "0.1.0",
-  "description": "Bouncing your webhook data to cube / nsq",
+  "description": "Bouncing your webhook data to nsq",
   "main": "index.js",
   "engines": {
     "node": ">=0.11.11"
@@ -12,18 +12,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hden/trampoline.git"
+    "url": "https://github.com/hden/mux.io.git"
   },
   "keywords": [
     "nsq",
-    "cube"
+    "socket.io",
+    "websocket"
   ],
   "author": "Hao-kang Den <haokang.den@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hden/trampoline/issues"
+    "url": "https://github.com/hden/mux.io/issues"
   },
-  "homepage": "https://github.com/hden/trampoline",
+  "homepage": "https://github.com/hden/mux.io",
   "dependencies": {
     "underscore": "~1.6.0",
     "debug": "~0.8.0",
@@ -42,5 +43,12 @@
     "coffee-script": "git://github.com/xixixao/coffee-script",
     "socket.io-client": "~0.9.16",
     "superagent": "~0.17.0"
+  },
+  "bin": {
+    "mux": "mux.js"
+  },
+  "directories": {
+    "doc": "doc",
+    "test": "test"
   }
 }
