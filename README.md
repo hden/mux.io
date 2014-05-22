@@ -1,4 +1,4 @@
-trampoline
+mux.io
 ==========
 
 Bouncing your socket.io data to nsq. With RESTful reply-to endpoints.
@@ -7,7 +7,7 @@ Bouncing your socket.io data to nsq. With RESTful reply-to endpoints.
 
 ## Design
 
-![Design](https://github.com/hden/trampoline/raw/master/doc/diagram.png)
+![Design](https://github.com/hden/mux.io/raw/master/doc/diagram.png)
 
 ## Requirement
 
