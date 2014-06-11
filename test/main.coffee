@@ -1,29 +1,34 @@
 'use strict'
 
-debug    = require('debug')('trampoline:test')
+debug    = require('debug')('mux:test')
 io       = require 'socket.io-client'
+sio      = require('socket.io')()
 request  = require 'superagent'
 nsq      = require 'nsq.js'
 {assert} = require 'chai'
 
-HOSTNAME = 'localhost'
-HTTPPORT = 8080
-WSPORT   = 8000
+describe 'mux.io', ->
+  socket   = undefined
+  reader   = undefined
+  socketId = undefined
 
-describe 'trampoline', ->
-  socket = undefined
-  reader = undefined
+  frontFacingPort = 8000
+  backendPort     = 8080
 
-  before (done) ->
-    require("#{__dirname}/../lib/main")({hostname: HOSTNAME, wsport:WSPORT, httpport: HTTPPORT, nsq: ':4150'})
+  before ->
 
-    socket = io.connect "http://#{HOSTNAME}:#{WSPORT}/"
+    # create server
+    mux = require('../')({hostname: 'localhost', port: backendPort, nsq: ':4150'})
+    mux.createHTTPServer().listen(backendPort)
+    mux.createWSServer(sio).listen(frontFacingPort)
+    sio.on 'connection', (s) ->
+      debug 'socket id %s', s.id
+      socketId = s.id
+
+    socket = io.connect "http://localhost:#{frontFacingPort}/"
 
     socket.on 'error', (error) ->
       console.error error.stack
-
-    socket.once 'connect_error', done
-    socket.once 'connect', done
 
   beforeEach (done) ->
     reader = nsq.reader {
@@ -40,28 +45,29 @@ describe 'trampoline', ->
     reader.close done
 
   it 'should bounce socket.io message to nsq', (done) ->
-    payload =
-      bar: 'baz'
 
     reader.once 'message', (message) ->
       message.finish()
-      msg = message.json()
+      packet = message.json()
 
-      assert.equal msg.name, 'foo'
-      assert.deepEqual msg.args, [payload]
-      assert.isString msg.replyTo
+      debug 'packet %j', packet
+
+      assert.deepPropertyVal packet, 'data[0]', 'foo'
+      assert.deepPropertyVal packet, 'data[1].bar', 'baz'
+      assert.include packet.replyTo, "http://localhost:#{backendPort}/#{socketId}/#{packet.id}"
       do done
 
-    socket.emit 'foo', payload, done
+    socket.emit 'foo', {bar: 'baz'}, ->
 
   it 'should bounce back ack message', (done) ->
-    @timeout 10 * 1000
     payload =
       baz: 'nyan'
 
     reader.once 'message', (message) ->
       message.finish()
       {replyTo} = message.json()
+
+      debug 'posting to %s', replyTo
 
       request
       .post(replyTo)
@@ -73,4 +79,16 @@ describe 'trampoline', ->
       assert.deepEqual ack, payload
       do done
 
-  it 'should be able to send specific message'
+  it 'should be able to send specific message', (done) ->
+    payload =
+      bar: 'baz'
+
+    socket.on 'foo', (data) ->
+      assert.deepEqual data, payload
+      do done
+
+    request
+      .post("http://localhost:#{backendPort}/#{socketId}?topic=foo")
+      .send(payload)
+      .end (res) ->
+        done 'faild to post message' unless res.ok

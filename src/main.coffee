@@ -1,90 +1,100 @@
 'use strict'
 
-debug  = require('debug')('trampoline:main')
+debug  = require('debug')('mux:main')
+patch  = require 'socketio-wildcard'
 _      = require 'underscore'
 parse  = require 'co-body'
-app    = require('koa')()
 nsq    = require 'nsq.js'
 
-noop   = ->
-patch  = (Server) ->
-  # socket.io wildcard patch
-  Server.Manager::onClientMessage = (id, packet) ->
-    return unless @namespaces[packet.endpoint]
-    @namespaces[packet.endpoint].handlePacket id, packet
-    p = _.clone packet
-    p.name = '*'
-    p.args = _.pick packet, 'id', 'name', 'args'
-    @namespaces[packet.endpoint].handlePacket id, p
-  Server
+###
+io    = require('socket.io')()
+mount = require('koa-mount')
+mux   = require('mux.io')()
+app   = require('koa')()
 
-ack = (socket, ackId, args) ->
-  args = [args] unless _.isArray args
-  socket.packet {
-      type: 'ack'
-      args: args
-      ackId: ackId
-  }
+# Standard
+mux.createHTTPServer().listen()
+mux.createWSServer(io)
 
-module.exports = (options = {}, configure = noop) ->
+# Namespace
+nsp   = '/mux'
+
+mux.createWSServer(io.of(nsp))
+app.use(mount(nsp, mux.createHTTPServer()))
+app.listen()
+###
+
+passthrough = (d) ->
+  d
+
+module.exports = (options = {}, fn = passthrough) ->
+  if options.nsq?
+    debug 'options %j', options
+    writer = nsq.writer(options.nsq)
+
+  nsp =
+    connected: {}
+
   _.defaults options, {
     hostname: require('os').hostname()
-    httpport: 8000
-    wsport: 80
+    port: 8000
   }
 
-  socketPool = {}
+  createHTTPServer = ->
+    app = require('koa')()
 
-  # body parser
-  app.use (next) -->
-    @request.body = yield parse(@)
-    yield next
+    # body parser
+    app.use (next) -->
+      @request.body ?= yield parse(@)
+      yield next
 
-  app.use(require('koa-trie-router')(app))
+    app.use(require('koa-trie-router')(app))
 
-  # general message handler
-  app.post '/:socketId', (next) -->
-    return unless (socketPool[@params.socketId] is true) and (@query.topic?)
-    @body  = 'ok'
-    return unless @request.body?
-    io.sockets.socket(@params.socketId).emit(@query.topic, @request.body)
+    # general message handler
+    app.post '/:socketId', (next) -->
+      return unless nsp.connected[@params.socketId]? and (@query.topic?)
+      @body  = 'ok'
+      socket = nsp.connected[@params.socketId]
+      return unless @request.body?
+      socket.emit(@query.topic, @request.body)
 
-  # ack message handler
-  app.post '/:socketId/:messageId', (next) -->
-    return unless socketPool[@params.socketId] is true
-    @body  = 'ok'
+    # ack message handler
+    app.post '/:socketId/:messageId', (next) -->
+      return unless nsp.connected[@params.socketId]?
+      @body  = 'ok'
+      socket = nsp.connected[@params.socketId]
+      return unless @request.body?
+      # emitting ack packet
+      socket.ack(@params.messageId)(@request.body)
 
-    return unless @request.body?
-    # emitting ack packet
-    ack(io.sockets.socket(@params.socketId), @params.messageId, @request.body)
+      yield next
 
-    yield next
+  createWSServer = (namespace, fn = passthrough) ->
+    nsp = if namespace.sockets? then namespace.sockets else namespace
+    nsp.use (socket, next) ->
+      debug 'got connection from %s', socket.id
+      next()
+    nsp.use(patch())
 
-  server   = require('http').Server(app.callback())
-  io       = patch(require('socket.io')).listen(options.wsport)
-  writer   = nsq.writer(options.nsq) if options.nsq?
+    debug 'attached to namespace %s', nsp.name or '/'
 
-  io.configure ->
-    configure io
+    nsp.on 'connection', (socket) ->
+      debug 'on connection'
 
-  io.sockets.on 'connection', (socket) ->
-    socketPool[socket.id] = true
+      socket.on '*', (packet) ->
+        debug 'on message'
 
-    socket.on 'disconnect', ->
-      socketPool[socket.id] = undefined
+        if packet.id?
+          # client expects ack
+          packet = _.clone packet
+          packet.replyTo = "http://#{options.hostname}:#{options.port}#{nsp.name}#{socket.id}/#{packet.id}"
 
-    socket.on '*', ({name, args, id}, done) ->
-      debug 'on message'
+        topic = packet?.data?[0]
 
-      body =
-        name: name
-        id: id
-        args: args
-        replyTo: "http://#{options.hostname}:#{options.httpport}/#{socket.id}/#{id}"
+        if options.nsq? and topic?
+          debug 'bouncing topic:%s packet: %j', topic, packet
+          writer.publish(topic, fn(packet))
 
-      debug 'bouncing message: %j', body
+    namespace
 
-      writer.publish(name, body) if options.nsq?
-
-  # engine start
-  server.listen(options.httpport)
+  {createWSServer, createHTTPServer}

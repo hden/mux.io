@@ -2,7 +2,7 @@
   "name": "mux.io",
   "version": "0.1.1",
   "description": "Bouncing your webhook data to nsq",
-  "main": "index.js",
+  "main": "lib/main.js",
   "engines": {
     "node": ">=0.11.11"
   },
@@ -17,7 +17,8 @@
   "keywords": [
     "nsq",
     "socket.io",
-    "websocket"
+    "websocket",
+    "SOA"
   ],
   "author": "Hao-kang Den <haokang.den@gmail.com>",
   "license": "MIT",
@@ -28,24 +29,19 @@
   "dependencies": {
     "underscore": "~1.6.0",
     "debug": "~0.8.0",
-    "commander": "~2.2.0",
-    "co": "~3.0.5",
-    "moment": "~2.5.1",
-    "nsq.js": "~0.8.1",
-    "socket.io": "~0.9.16",
     "koa": "~0.5.5",
     "co-body": "0.0.1",
-    "koa-trie-router": "~1.0.5"
+    "koa-trie-router": "~1.0.5",
+    "socketio-wildcard": "~0.1.1",
+    "nsq.js": "~0.10.1"
   },
   "devDependencies": {
+    "socket.io": "~1.0.4",
     "chai": "~1.9.1",
     "mocha": "~1.18.2",
     "coffee-script": "git://github.com/xixixao/coffee-script",
-    "socket.io-client": "~0.9.16",
-    "superagent": "~0.17.0"
-  },
-  "bin": {
-    "mux": "mux.js"
+    "superagent": "~0.17.0",
+    "socket.io-client": "~1.0.4"
   },
   "directories": {
     "doc": "doc",
