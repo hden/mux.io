@@ -1,6 +1,6 @@
 {
   "name": "mux.io",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Bouncing your webhook data to nsq",
   "main": "lib/main.js",
   "engines": {
